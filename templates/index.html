@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beauty Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">Beauty Analysis</h1>
+        <form id="uploadForm" class="mb-4">
+            <input type="file" id="imageInput" accept="image/*" class="w-full mb-2">
+            <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Analyze</button>
+        </form>
+        <div id="result" class="hidden">
+            <img id="analyzedImage" class="w-full mb-4 rounded" alt="Analyzed face">
+            <div id="scoreCard" class="mb-4 p-4 rounded text-white text-center font-bold"></div>
+            <div id="ratios" class="mb-4"></div>
+            <div id="skinTone" class="mb-4"></div>
+            <div id="suggestions" class="mb-4"></div>
+        </div>
+        <div id="error" class="hidden text-red-500 text-center"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const imageFile = document.getElementById('imageInput').files[0];
+            formData.append('image', imageFile);
+
+            try {
+                const response = await axios.post('/analyze', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                
+                const data = response.data;
+                document.getElementById('analyzedImage').src = data.image;
+                document.getElementById('scoreCard').textContent = `Beauty Score: ${data.beauty_score.toFixed(2)} (${data.score_category})`;
+                document.getElementById('scoreCard').style.backgroundColor = data.category_color;
+                
+                document.getElementById('ratios').innerHTML = `
+                    <p>Face Ratio: ${data.face_ratio.toFixed(2)}</p>
+                    <p>Eye Ratio: ${data.eye_ratio.toFixed(2)}</p>
+                    <p>Nose Ratio: ${data.nose_ratio.toFixed(2)}</p>
+                `;
+                
+                document.getElementById('skinTone').innerHTML = `
+                    <p>Skin Tone: ${data.skin_tone}</p>
+                    <div class="w-full h-8 rounded" style="background-color: ${data.skin_color};"></div>
+                `;
+                
+                document.getElementById('suggestions').innerHTML = data.suggestions.map(s => `<p>- ${s}</p>`).join('');
+                
+                result.classList.remove('hidden');
+                error.classList.add('hidden');
+            } catch (err) {
+                error.textContent = err.response?.data?.error || 'An error occurred';
+                error.classList.remove('hidden');
+                result.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
